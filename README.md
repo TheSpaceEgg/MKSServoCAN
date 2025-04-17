@@ -17,12 +17,12 @@ Arduino library for controlling **MKS SERVO42D/57D** closed‑loop stepper drive
 
 ## Installation
 
-1. Clone into your Arduino libraries folder:  
+1. Clone into your Arduino libraries folder if not available in **library manager**:  
    ```bash
    cd ~/Arduino/libraries
    git clone https://github.com/YourUser/MKSServoCAN.git
    ```
-2. Install the **TwaiCan** library for ESP32’s TWAI peripheral (via Library Manager or Git).
+2. Ensure the **TwaiCan** library for ESP32’s TWAI peripheral is available. This should be as long as **ESP32 boards are installed**.
 
 ---
 
@@ -168,4 +168,9 @@ Pull requests and issues welcome. Include your MCU, CAN transceiver, and test ou
 
 ## License
 
-MIT
+**Creative Commons Attribution‑NonCommercial 4.0 International**
+(CC BY‑NC 4.0)
+
+**Anyone can copy, share, modify and distribute this code with attribution to Will Hickmott**
+
+**Commercial use (selling, bundling in a paid product, etc.) is forbidden**
