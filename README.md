@@ -10,7 +10,7 @@ Arduino library for controlling **MKS SERVO42D/57D** closed‑loop stepper drive
 - Automatic CRC calculation and frame encoding  
 - Pluggable CAN‑bus backend via the `ICanBus` interface  
   - **TWAI on ESP32** (built‑in)  
-  - **SPI/MCP2515** support planned  
+  - **SPI/MCP2515** support **planned** 
 - Human‑friendly response decoding with `pollResponses()`  
 
 ---
@@ -139,22 +139,24 @@ All functions take a **device ID** (1–2047).
 
 - **ESP32 WROOM** with TWAI peripheral  
 - **Waveshare SN65HVD230** CAN transceiver  
+- **SERVO42D** driver tested only
 
 ---
 
 ## Future Plans
 
+- Support for A/B/C/D and incoming E variants of the SERVO42/57 drivers
 - SPI‑based CAN (MCP2515) backend for AVR/STM32/Uno  
 - Linux SBC support (Raspberry Pi, Jetson)  
 - Additional MCUs (Arduino Due, STM32)  
-- Community features: async callbacks, ROS node, web GUI  
-- Hardware compatibility matrix—please share your test results!  
+- Hardware compatibility matrix — **please share your test results!**
 
 ---
 
 ## External Resources
 
-- Official MKS SERVO57D repo: https://github.com/makerbase-motor/MKS-SERVO57D citeturn0search0  
+- Official MKS SERVO42C repo: https://github.com/makerbase-motor/MKS-SERVO42C
+- Official MKS SERVO42D repo: https://github.com/makerbase-motor/MKS-SERVO57D 
 
 ---
 
