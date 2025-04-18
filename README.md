@@ -10,38 +10,82 @@ Arduino library for controlling **MKS SERVO42D/57D** closed‑loop stepper drive
 - Automatic CRC calculation and frame encoding  
 - Pluggable CAN‑bus backend via the `ICanBus` interface  
   - **TWAI on ESP32** (built‑in)  
-  - **SPI/MCP2515** support **planned** 
+  - **SPI/MCP2515** support (tested)  
 - Human‑friendly response decoding with `pollResponses()`  
 
 ---
 
 ## Installation
 
-1. Clone into your Arduino libraries folder if not available in **library manager**:  
+1. Clone into your Arduino libraries folder if not available in **Library Manager**:  
    ```bash
    cd ~/Arduino/libraries
    git clone https://github.com/YourUser/MKSServoCAN.git
    ```
-2. Ensure the **TwaiCan** library for ESP32’s TWAI peripheral is available. This should be as long as **ESP32 boards are installed**.
+2. **For ESP32/TWAI**: ensure your ESP32 board definitions are installed.  
+3. **For MCP2515**: install the [MCP_CAN library](https://github.com/coryjfowler/MCP_CAN_lib) (e.g. via Library Manager) and include `<SPI.h>`.
 
 ---
 
-## Quick Start Example
+## Quick Start Examples
+
+### ESP32 + TWAI
 
 ```cpp
 #include <Arduino.h>
 #include <TwaiCan.h>
 #include <MKSServoCAN.h>
 
-#define MOTOR_ID 1
+#define MOTOR_ID  1
 
-TwaiCan canBus(GPIO_NUM_27, GPIO_NUM_26);
+TwaiCan bus(GPIO_NUM_27, GPIO_NUM_26);
 
 void setup() {
   Serial.begin(115200);
   while (!Serial);
 
-  if (!MKSServoCAN::begin(&canBus)) {
+  if (!MKSServoCAN::begin(&bus)) {
+    Serial.println("CAN init failed");
+    while (1);
+  }
+
+  MKSServoCAN::goHome(MOTOR_ID);
+}
+
+void loop() {
+  MKSServoCAN::pollResponses();
+}
+```
+
+### SPI + MCP2515
+
+```cpp
+#include <Arduino.h>
+#include <McpCan.h>
+#include <MKSServoCAN.h>
+
+#define MOTOR_ID    1
+
+#define MCP_MISO    19
+#define MCP_MOSI    23
+#define MCP_SCLK    18
+#define MCP_CS      5
+#define MCP_INT     17
+
+McpCan bus(
+  MCP_MISO,
+  MCP_MOSI,
+  MCP_SCLK,
+  MCP_CS,
+  MCP_INT,
+  CAN_500KBPS
+);
+
+void setup() {
+  Serial.begin(115200);
+  while (!Serial);
+
+  if (!MKSServoCAN::begin(&bus)) {
     Serial.println("CAN init failed");
     while (1);
   }
@@ -58,7 +102,7 @@ void loop() {
 
 ## Command Reference
 
-All functions take a **device ID** (1–2047).
+_All functions take a **device ID** (1–2047)._
 
 ### Status Reads
 
@@ -87,7 +131,7 @@ All functions take a **device ID** (1–2047).
 | `setEnActive(id, lvl)`                  | 0x85 | EN‑pin active level                    |
 | `setDirection(id, dir)`                 | 0x86 | 0=CW,1=CCW                             |
 | `setAutoSleep(id, enable)`              | 0x87 | Auto turn‑off OLED                     |
-| `setProtect(id, enable)`                | 0x88 | Locked‑rotor protection                 |
+| `setProtect(id, enable)`                | 0x88 | Locked‑rotor protection                |
 | `setInterpolator(id, enable)`           | 0x89 | Subdivision interpolation              |
 | `setHoldCurrent(id, pct)`               | 0x9B | Holding current percentage             |
 | `setCanRate(id, rate)`                  | 0x8A | CAN bit rate (0=125k…3=1M)             |
@@ -113,64 +157,69 @@ All functions take a **device ID** (1–2047).
 | `setZeroMode(id, mode, en, speed, dir)` | 0x9A     | Zero on power‑up behaviour             |
 | `restoreDefaults(id)`                   | 0x3F     | Reset to factory parameters            |
 | `restart(id)`                           | 0x41     | Restart firmware                       |
-| `setEnTrigger(id, eTrig, pProt, tim, err)` | 0x9D   | EN‑trigger zero & position‑error prot. |
+| `setEnTrigger(id, eTrig, pProt, tim, err)` | 0x9D   | EN‑trigger zero & pos‑error prot.      |
 | `readSystemParam(id, code)`             | 0x00+code| Read arbitrary system parameter        |
 
 ### Motion & Control
 
-| Function                                   | Code         | Description                         |
-|--------------------------------------------|--------------|-------------------------------------|
-| `queryStatus(id)`                          | 0xF1         | Motor status                       |
-| `enableMotor(id, enable)`                  | 0xF3         | Enable/disable motor               |
-| `emergencyStop(id)`                        | 0xF7         | Emergency stop                     |
-| `speedMode(id, speed, accel, ccw)`         | 0xF6         | Constant speed mode                |
-| `speedModeStop(id)`                        | 0xF6 (acc=0) | Stop speed mode                    |
-| `speedState(id, save)`                     | 0xFF         | Save/clear speed parameters        |
-| `posRelative(id, pulses, speed, accel, ccw)`| 0xFD         | Relative‑pulse move                |
-| `posRelativeStop(id)`                      | 0xFD (acc=0) | Stop relative move                 |
-| `posAbsolute(id, axis, speed, accel)`      | 0xFE         | Absolute‑position move             |
-| `posAbsoluteStop(id)`                      | 0xFE (acc=0) | Stop absolute move                 |
-| `posAxis(id, relAxis, speed, accel)`       | 0xF4         | Relative‑axis move                 |
-| `posAxisStop(id)`                          | 0xF4 (acc=0) | Stop axis move                     |
+| Function                                    | Code         | Description                         |
+|---------------------------------------------|--------------|-------------------------------------|
+| `queryStatus(id)`                           | 0xF1         | Motor status                        |
+| `enableMotor(id, enable)`                   | 0xF3         | Enable/disable motor                |
+| `emergencyStop(id)`                         | 0xF7         | Emergency stop                      |
+| `speedMode(id, speed, accel, ccw)`          | 0xF6         | Constant speed mode                 |
+| `speedModeStop(id)`                         | 0xF6 (acc=0) | Stop speed mode                     |
+| `speedState(id, save)`                      | 0xFF         | Save/clear speed parameters         |
+| `posRelative(id, pulses, speed, accel, ccw)`| 0xFD         | Relative‑pulse move                 |
+| `posRelativeStop(id)`                       | 0xFD (acc=0) | Stop relative move                  |
+| `posAbsolute(id, axis, speed, accel)`       | 0xFE         | Absolute‑position move              |
+| `posAbsoluteStop(id)`                       | 0xFE (acc=0) | Stop absolute move                  |
+| `posAxis(id, relAxis, speed, accel)`        | 0xF4         | Relative‑axis move                  |
+| `posAxisStop(id)`                           | 0xF4 (acc=0) | Stop axis move                      |
 
 ---
 
 ## Supported Hardware
 
-- **ESP32 WROOM** with TWAI peripheral  
+- **ESP32 WROOM** with built‑in TWAI peripheral  
 - **Waveshare SN65HVD230** CAN transceiver  
-- **SERVO42D** driver tested only
+- **MCP2515** SPI‑to‑CAN bridge (3.3 V logic + 5 V VCC)  
+- **MKS SERVO42D/57D** driver modules  
 
 ---
 
 ## Future Plans
 
-- Support for A/B/C/D and incoming E variants of the SERVO42/57 drivers
-- SPI‑based CAN (MCP2515) backend for AVR/STM32/Uno  
+- Support for A/B/C/D/E variants of the SERVO42/57 drivers  
+- Additional SPI‑based CAN backends (e.g. on AVR, STM32, Arduino Uno)  
 - Linux SBC support (Raspberry Pi, Jetson)  
-- Additional MCUs (Arduino Due, STM32)  
-- Hardware compatibility matrix — **please share your test results!**
+- Expanded MCU compatibility (Due, Teensy, etc.)  
+- Collaborative hardware compatibility matrix — **please share your test results!**
 
 ---
 
 ## External Resources
 
-- Official MKS SERVO42C repo: https://github.com/makerbase-motor/MKS-SERVO42C
-- Official MKS SERVO42D repo: https://github.com/makerbase-motor/MKS-SERVO57D 
+- Official MKS SERVO42C repo: https://github.com/makerbase-motor/MKS-SERVO42C  
+- Official MKS SERVO57D repo: https://github.com/makerbase-motor/MKS-SERVO57D  
 
 ---
 
 ## Contributing
 
-Pull requests and issues welcome. Include your MCU, CAN transceiver, and test outcome.
+Pull requests and issues welcome. When submitting, please include your:
+
+- MCU type  
+- CAN transceiver model  
+- Hardware wiring (pin assignments)  
+- Test outcome (working/non‑working)  
 
 ---
 
 ## License
 
-**Creative Commons Attribution‑NonCommercial 4.0 International**
-(CC BY‑NC 4.0)
+Creative Commons Attribution‑NonCommercial 4.0 International  
+(CC BY‑NC 4.0)  
 
-**Anyone can copy, share, modify and distribute this code with attribution to Will Hickmott**
-
-**Commercial use (selling, bundling in a paid product, etc.) is forbidden**
+Anyone may copy, share, modify, and distribute this code with attribution to **Will Hickmott**.  
+Commercial use (selling, bundling in a paid product, etc.) is **forbidden**.
